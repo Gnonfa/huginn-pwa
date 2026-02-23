@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+  // GitHub Pages SPA redirect: reindirizza qualsiasi path a index.html
+  sessionStorage.setItem('pwa_redirect', location.pathname + location.search + location.hash);
+  location.replace('/huginn-pwa/');
+</script>
