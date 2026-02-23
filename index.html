@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Huginn" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <meta name="description" content="Huginn — browser privato, il corvo di Odino" />
+
+  <title>Huginn</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- iOS icons -->
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png" />
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
+
+  <!-- Splash screen per iPhone (safe area insets) -->
+  <meta name="apple-touch-startup-image" content="icons/icon-512.png" />
+
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #242424;
+      --text: #e0e0e0;
+      --dim: #555;
+      --accent: #8b5cf6;
+      --radius: 12px;
+      --safe-top: env(safe-area-inset-top, 44px);
+      --safe-bottom: env(safe-area-inset-bottom, 20px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Layout shell ──────────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+    }
+
+    /* ── Top bar ───────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .search-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0 12px;
+      height: 38px;
+      gap: 8px;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--accent);
+    }
+
+    .search-icon {
+      color: var(--dim);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    #url-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    #url-input::placeholder { color: var(--dim); }
+
+    .btn-claude {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      height: 38px;
+      padding: 0 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-appearance: none;
+    }
+
+    /* ── Home screen ───────────────────────────────────────────── */
+    .home {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 32px 24px;
+    }
+
+    .raven-logo {
+      width: 88px;
+      height: 88px;
+      opacity: 0.15;
+    }
+
+    .title {
+      font-size: 34px;
+      font-weight: 200;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #bbb;
+    }
+
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: #1e1e1e;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #2e2e2e;
+    }
+
+    .quick-btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .quick-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--dim);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+
+    /* ── Content area (after navigate) ────────────────────────── */
+    .content-area {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+    }
+
+    .content-area.visible { display: flex; }
+
+    .nav-notice {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .nav-notice .site-name {
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text);
+    }
+
+    .nav-notice .info {
+      font-size: 13px;
+      color: var(--dim);
+      line-height: 1.6;
+      max-width: 280px;
+    }
+
+    .open-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 24px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: 8px;
+    }
+
+    .private-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #3a3a3a;
+      letter-spacing: 0.05em;
+    }
+
+    .private-badge::before {
+      content: '◆';
+      font-size: 6px;
+      color: #8b5cf6;
+    }
+
+    /* ── Install prompt (shown if not already installed) ───────── */
+    .install-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #1a1025;
+      border-top: 1px solid #2d1f45;
+      flex-shrink: 0;
+    }
+
+    .install-banner.show { display: flex; }
+
+    .install-text {
+      font-size: 12px;
+      color: #a78bfa;
+      flex: 1;
+    }
+
+    .install-close {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Barra di ricerca/navigazione ─────────────────────── -->
+    <div class="topbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          id="url-input"
+          type="text"
+          inputmode="url"
+          placeholder="Cerca o inserisci un URL…"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        />
+      </div>
+      <button class="btn-claude" onclick="openClaude()">Claude</button>
+    </div>
+
+    <!-- ── Home (visibile quando non si sta navigando) ──────── -->
+    <div class="home" id="home-screen">
+      <!-- Corvo SVG -->
+      <svg class="raven-logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#e0e0e0" d="M278,174 Q240,184 216,230 Q188,280 175,338 Q160,385 162,418 L90,362 L75,412 L98,458 L138,472 L180,472 L214,460 L248,472 Q276,480 302,470 Q332,457 354,432 Q376,406 385,372 Q396,336 396,299 Q398,262 390,230 Q382,204 372,185 Q364,168 355,162 Z"/>
+        <circle cx="340" cy="152" r="73" fill="#e0e0e0"/>
+        <path fill="#e0e0e0" d="M396,104 Q444,92 474,128 Q487,150 470,174 L452,171 Q465,154 456,136 Q442,108 406,106 Z"/>
+        <path fill="#e0e0e0" d="M396,153 L468,174 L445,196 L400,177 Z"/>
+        <line x1="399" y1="153" x2="466" y2="174" stroke="#0d0d0d" stroke-width="5"/>
+        <circle cx="371" cy="138" r="19" fill="#0d0d0d"/>
+        <circle cx="374" cy="134" r="5" fill="#e0e0e0"/>
+        <line x1="260" y1="212" x2="172" y2="316" stroke="#0d0d0d" stroke-width="8"/>
+        <line x1="262" y1="244" x2="168" y2="350" stroke="#0d0d0d" stroke-width="8"/>
+        <line x1="258" y1="276" x2="163" y2="382" stroke="#0d0d0d" stroke-width="8"/>
+      </svg>
+
+      <div class="title">Huginn</div>
+      <div class="divider"></div>
+      <div class="subtitle">Navigazione sempre privata</div>
+
+      <!-- Quick links -->
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="openUrl('https://claude.ai')">🤖 Claude AI</button>
+        <button class="quick-btn" onclick="openUrl('https://search.brave.com')">🔍 Brave Search</button>
+        <button class="quick-btn" onclick="openUrl('https://proton.me')">📬 ProtonMail</button>
+      </div>
+
+      <div class="private-badge">Sessione privata · nessun dato salvato</div>
+    </div>
+
+    <!-- ── Pannello dopo navigazione ─────────────────────────── -->
+    <div class="content-area" id="content-area">
+      <div class="nav-notice">
+        <div class="site-name" id="site-name"></div>
+        <div class="info">
+          Safari aprirà questo sito in una nuova scheda.
+          Per la vera navigazione privata usa <strong>Huginn Desktop</strong> su Mac o Windows.
+        </div>
+        <button class="open-btn" id="open-btn">Apri nel browser →</button>
+        <div class="private-badge">Sessione privata · nessun dato salvato</div>
+      </div>
+    </div>
+
+    <!-- ── Banner "aggiungi alla schermata home" ─────────────── -->
+    <div class="install-banner" id="install-banner">
+      <span class="install-text">
+        📲 Aggiungi Huginn: premi <strong>Condividi</strong> → "Aggiungi a schermata Home"
+      </span>
+      <button class="install-close" onclick="dismissInstall()">✕</button>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Service Worker registration ───────────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(console.warn);
+    }
+
+    const urlInput   = document.getElementById('url-input');
+    const homeScreen = document.getElementById('home-screen');
+    const contentArea= document.getElementById('content-area');
+    const siteName   = document.getElementById('site-name');
+    const openBtn    = document.getElementById('open-btn');
+
+    let pendingUrl = '';
+
+    // ── Naviga (apre in Safari) ───────────────────────────────────────────────
+    function openUrl(url) {
+      if (!url) return;
+      const parsed = url.startsWith('http') ? url
+        : url.includes('.') && !url.includes(' ') ? 'https://' + url
+        : 'https://search.brave.com/search?q=' + encodeURIComponent(url);
+
+      pendingUrl = parsed;
+      try {
+        const host = new URL(parsed).hostname.replace('www.', '');
+        siteName.textContent = host;
+      } catch {
+        siteName.textContent = parsed;
+      }
+      openBtn.onclick = () => window.open(parsed, '_blank');
+
+      homeScreen.style.display  = 'none';
+      contentArea.classList.add('visible');
+      urlInput.value = '';
+      urlInput.blur();
+    }
+
+    function openClaude() { openUrl('https://claude.ai'); }
+
+    // ── Tastiera Enter ────────────────────────────────────────────────────────
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        openUrl(urlInput.value.trim());
+      }
+    });
+
+    urlInput.addEventListener('focus', () => {
+      // Torna alla home quando si tocca la barra
+      homeScreen.style.display = 'flex';
+      contentArea.classList.remove('visible');
+    });
+
+    // ── Shortcut ?open=claude ─────────────────────────────────────────────────
+    const params = new URLSearchParams(location.search);
+    if (params.get('open') === 'claude') openClaude();
+
+    // ── Banner "aggiungi alla home" (solo su Safari iOS, non già installata) ──
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true;
+    const dismissed = localStorage.getItem('huginn_install_dismissed');
+
+    if (isIos && !isStandalone && !dismissed) {
+      document.getElementById('install-banner').classList.add('show');
+    }
+
+    function dismissInstall() {
+      document.getElementById('install-banner').classList.remove('show');
+      localStorage.setItem('huginn_install_dismissed', '1');
+    }
+  </script>
+</body>
+</html>
